@@ -141,8 +141,8 @@ class CustomDialog(gui.GeDialog):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def main():
-    
+def main(doc):
+
     dlg = CustomDialog()
     if dlg.Open(c4d.DLG_TYPE_MODAL, defaultw=300, defaulth=100) and dlg.dialogConfirmed:
         # Get width, height, and orientation after the dialog has been closed
@@ -220,6 +220,3 @@ def main():
                 logger.exception("An error occurred while processing the .omni file.")
         else:
             logger.warning("No .omni file selected.")
-
-if __name__ == "__main__":
-    main()
