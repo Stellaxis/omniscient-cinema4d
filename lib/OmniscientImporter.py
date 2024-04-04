@@ -170,12 +170,29 @@ def main(doc):
                     for geo_path in geo_paths:
                         obj_path = os.path.join(os.path.dirname(file_path), geo_path)
                         if os.path.isfile(obj_path):
-                            # Include c4d.SCENEFILTER_MATERIALS to import materials
+                            # Take a snapshot of all objects before import
+                            objects_before_import = set(doc.GetObjects())
+
+                            # Import the geometry
                             imported_object = c4d.documents.MergeDocument(doc, obj_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS)
                             if not imported_object:
                                 logger.error(f"Failed to import {geo_path}")
                             else:
                                 logger.info(f"Successfully imported {geo_path}")
+                                
+                                # Take another snapshot after import
+                                objects_after_import = set(doc.GetObjects())
+
+                                # Identify newly imported objects
+                                new_objects = objects_after_import - objects_before_import
+                                
+                                for obj in new_objects:
+                                    obj_name = "Scan_Omni"
+                                    obj.SetName(obj_name)
+                                
+                                # Update the scene to reflect the change
+                                c4d.EventAdd()
+
                         else:
                             logger.warning(f"File not found: {geo_path}")
                 else:
