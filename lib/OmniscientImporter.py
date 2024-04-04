@@ -188,16 +188,42 @@ def main(doc):
     
                 # Correcting the import for camera file using Alembic format (.abc)
                 if camera_path:
-                    # Construct the full path to the camera file
                     camera_file_path = os.path.join(os.path.dirname(file_path), camera_path)
-    
                     logger.info(f"Importing camera file: {camera_file_path}")
-    
-                    # Check if the camera file exists
+
                     if os.path.isfile(camera_file_path):
-                        # Import the camera file using MergeDocument for .abc files
-                        if c4d.documents.MergeDocument(doc, camera_file_path, c4d.SCENEFILTER_OBJECTS|c4d.SCENEFILTER_MATERIALS|c4d.SCENEFILTER_MERGESCENE, None):
+                        # Snapshot of the objects in the document before import
+                        objects_before_import = set(doc.GetObjects())
+
+                        # Import the camera file
+                        if c4d.documents.MergeDocument(doc, camera_file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS | c4d.SCENEFILTER_MERGESCENE, None):
                             logger.info(f"Successfully imported camera: {camera_path}")
+                            
+                            # Snapshot of the objects in the document after import
+                            objects_after_import = set(doc.GetObjects())
+                            
+                            # Determine which objects were added by the import
+                            new_objects = objects_after_import - objects_before_import
+                            imported_camera = None
+                            
+                            # Check for both Alembic Generator and standard Cinema 4D camera objects
+                            for obj in new_objects:
+                                if obj.GetType() == 1028083 or obj.GetType() == 5103:  # Alembic Generator or Cinema 4D camera
+                                    imported_camera = obj
+                                    break
+                            
+                            if imported_camera:
+                                # Create and assign the SafeFrameTag to the imported camera
+                                safe_frame_tag = c4d.BaseTag(1063016)
+                                if safe_frame_tag:
+                                    imported_camera.InsertTag(safe_frame_tag)
+                                    logger.info(f"SafeFrameTag assigned to camera: {imported_camera.GetName()}")
+                                    c4d.EventAdd()  # Refresh to see the change in the C4D interface
+                                else:
+                                    logger.error("Failed to create SafeFrameTag.")
+                            else:
+                                logger.warning("No compatible camera found in the imported objects.")
+
                         else:
                             logger.error(f"Failed to import camera: {camera_path}")
                     else:
