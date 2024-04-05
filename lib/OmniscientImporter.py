@@ -41,38 +41,41 @@ def update_project_settings(doc, width, height, fps):
     documents.SetActiveDocument(doc)
     c4d.EventAdd()
 
+def import_omni_file(doc, file_path):
+    logger.info(f"Selected .omni file: {file_path}")
+    try:
+        with open(file_path, "r") as file:
+            omni_data = json.load(file)
+        logger.info("Parsed .omni data.")
+
+        # Extract project settings from .omni data
+        video_data = omni_data.get("data", {}).get("video", {})
+        width = int(float(video_data.get("resolution", {}).get("width", "1920")))
+        height = int(float(video_data.get("resolution", {}).get("height", "1080")))
+        fps = float(video_data.get("fps", "30"))
+
+        # Update Cinema 4D project settings
+        update_project_settings(doc, width, height, fps)
+
+        # Handle geometry import
+        geometry_paths = omni_data.get("data", {}).get("geometry", {}).get("relative_path", [])
+        if geometry_paths:
+            for geo_path in geometry_paths:
+                obj_path = os.path.join(os.path.dirname(file_path), geo_path)
+                process_import(doc, obj_path, "Scan_Omni")
+
+        # Handle camera import
+        camera_path = omni_data.get("data", {}).get("camera", {}).get("relative_path", "")
+        if camera_path:
+            cam_path = os.path.join(os.path.dirname(file_path), camera_path)
+            process_import(doc, cam_path, "Camera_Omni", is_camera=True)
+
+    except Exception as e:
+        logger.exception("An error occurred while processing the .omni file: ", exc_info=e)
+
 def main(doc):
-    file_path = storage.LoadDialog(title="Select .omni File", flags=c4d.FILESELECT_LOAD, force_suffix="omni")
+    file_path = c4d.storage.LoadDialog(title="Select .omni File", flags=c4d.FILESELECT_LOAD, force_suffix="omni")
     if file_path:
-        logger.info(f"Selected .omni file: {file_path}")
-        try:
-            with open(file_path, "r") as file:
-                omni_data = json.load(file)
-            logger.info("Parsed .omni data.")
-
-            # Extract project settings from .omni data
-            video_data = omni_data.get("data", {}).get("video", {})
-            width = int(float(video_data.get("resolution", {}).get("width", "1920")))
-            height = int(float(video_data.get("resolution", {}).get("height", "1080")))
-            fps = float(video_data.get("fps", "30"))
-
-            # Update Cinema 4D project settings
-            update_project_settings(doc, width, height, fps)
-
-            # Handle geometry import
-            geometry_paths = omni_data.get("data", {}).get("geometry", {}).get("relative_path", [])
-            if geometry_paths:
-                for geo_path in geometry_paths:
-                    obj_path = os.path.join(os.path.dirname(file_path), geo_path)
-                    process_import(doc, obj_path, "Scan_Omni")
-
-            # Handle camera import
-            camera_path = omni_data.get("data", {}).get("camera", {}).get("relative_path", "")
-            if camera_path:
-                cam_path = os.path.join(os.path.dirname(file_path), camera_path)
-                process_import(doc, cam_path, "Camera_Omni", is_camera=True)
-
-        except Exception as e:
-            logger.exception("An error occurred while processing the .omni file: ", exc_info=e)
+        import_omni_file(doc, file_path)
     else:
-        logger.warning("No .omni file selected.")
+        print("No file selected.")

@@ -13,12 +13,23 @@ from safeFrameTag import SafeFrameTag
 
 # Unique plugin IDs
 PLUGIN_ID = 1063004
-SAFE_FRAME_TAG_ID = 1063016  # Replace with your actual unique ID for SafeFrameTag
+SAFE_FRAME_TAG_ID = 1063016 
+OMNI_FILE_LOADER_ID = 1063022
 
 class OmniscientImporterPlugin(c4d.plugins.CommandData):
     def Execute(self, doc):
         omniscient_importer.main(doc)
         return True
+
+class OmniFileLoader(c4d.plugins.SceneLoaderData):
+    def Identify(self, node, name, probe, size):
+        return name.lower().endswith('.omni')
+
+
+    def Load(self, node, name, doc, filterflags, error, bt):
+        omniscient_importer.import_omni_file(doc, name)
+        c4d.EventAdd()
+        return c4d.FILEERROR_NONE
 
 def main():
     icon_path = os.path.join(parent_directory, "res", "icon.png")
@@ -46,6 +57,15 @@ def main():
             description="Tsafe_frame",
             icon=icon_bitmap):
         raise RuntimeError("Failed to register SafeFrame Tag.")
+
+    # Register the .omni file loader
+    if not c4d.plugins.RegisterSceneLoaderPlugin(
+            id=OMNI_FILE_LOADER_ID,
+            str="Omni File Loader",
+            g=OmniFileLoader,
+            info=0,
+            description="Loads .omni files"):
+        print("Failed to register Omni File Loader.")
 
 if __name__ == "__main__":
     main()
