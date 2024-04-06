@@ -4,6 +4,7 @@ import logging
 import os
 from c4d import documents
 from videoBackground import create_background_with_video_material
+from projectSettings import set_project_settings_from_video
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -147,10 +148,11 @@ def import_omni_file(doc, file_path):
             cam_path = os.path.join(os.path.dirname(file_path), camera_path)
             process_import(doc, cam_path, "Camera_Omni", is_camera=True)
 
-        # Create material from video
+        # Create material from video and set project settings
         video_path = os.path.join(os.path.dirname(file_path), video_data.get("relative_path", ""))
         if os.path.exists(video_path):
             create_background_with_video_material(doc, video_path)
+            set_project_settings_from_video(doc, video_path)
         else:
             logger.warning(f"Video file not found: {video_path}")
 
