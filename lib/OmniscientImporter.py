@@ -22,6 +22,23 @@ def get_obj_import_scale_factor():
     else:
         return None
 
+def get_abc_import_scale_factor():
+    abc_import_id = c4d.FORMAT_ABCIMPORT
+    prefs = c4d.plugins.GetWorldPluginData(abc_import_id)
+
+    if prefs is None:
+        print("No global plugin data found for Alembic Importer.")
+        return None
+
+    unit_scale_data = prefs[1010]
+
+    if unit_scale_data:
+        scale_factor, unit_identifier = unit_scale_data.GetUnitScale()
+        return scale_factor, unit_identifier
+    else:
+        print("Scale factor data not found in Alembic Importer preferences.")
+        return None
+    
 def calculate_scale_factor_to_meters(scale_factor, unit_identifier):
     # Dictionary to convert scale factor from various units to meters
     unit_to_meter_conversion = {
@@ -45,20 +62,21 @@ def calculate_scale_factor_to_meters(scale_factor, unit_identifier):
         print("Unknown unit identifier, cannot calculate scale factor to meters.")
         return None
 
-def adjust_object_scale(obj, scale_factor):
-    """Scales an object by a given factor."""
-    # Retrieve the current global matrix of the object
-    mg = obj.GetMg()
+def adjust_object_scale(obj, scale_factor, is_camera=False):
+    """Scales an object or a camera's position by a given factor."""
+    mg = obj.GetMg()  # Get the current global matrix
     
-    # Scale each axis of the matrix by the scale factor
-    mg.v1 /= scale_factor  # Scale X axis
-    mg.v2 /= scale_factor  # Scale Y axis
-    mg.v3 /= scale_factor  # Scale Z axis
+    if is_camera:
+        # For cameras, only adjust the position
+        mg.off /= scale_factor
+    else:
+        # For other objects, scale the entire matrix
+        mg.v1 /= scale_factor  # Scale X axis
+        mg.v2 /= scale_factor  # Scale Y axis
+        mg.v3 /= scale_factor  # Scale Z axis
+        mg.off /= scale_factor  # Scale position
     
-    mg.off /= scale_factor
-    
-    # Set the modified global matrix back to the object
-    obj.SetMg(mg)
+    obj.SetMg(mg)  # Update the object with the modified matrix
 
 def process_import(doc, file_path, default_name, is_camera=False):
     # Attempt to retrieve the scale factor based on OBJ import settings
@@ -71,10 +89,9 @@ def process_import(doc, file_path, default_name, is_camera=False):
             logger.info(f"Successfully imported: {file_path}")
             objects_after_import = set(doc.GetObjects())
             new_objects = objects_after_import - objects_before_import
-            for obj in new_objects:
-                obj.SetName(default_name)
-                if not is_camera:
-                    adjust_object_scale(obj, adjusted_scale_factor)
+        for obj in new_objects:
+            obj.SetName(default_name)
+            adjust_object_scale(obj, adjusted_scale_factor, is_camera)
             if is_camera:
                 assign_safe_frame_tag_to_camera(new_objects)
             c4d.EventAdd()
