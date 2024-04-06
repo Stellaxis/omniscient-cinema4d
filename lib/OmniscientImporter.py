@@ -7,7 +7,64 @@ from c4d import storage, documents
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def get_obj_import_scale_factor():
+    obj_import_id = c4d.FORMAT_OBJIMPORT if c4d.GetC4DVersion() < 17000 else c4d.FORMAT_OBJ2IMPORT
+    prefs = c4d.plugins.GetWorldPluginData(obj_import_id)
+
+    if prefs is None:
+        print("No global plugin data found for OBJ Importer.")
+        return None
+
+    unit_scale_data = prefs[2010]
+    if unit_scale_data:
+        scale_factor, unit_identifier = unit_scale_data.GetUnitScale()
+        return scale_factor, unit_identifier
+    else:
+        return None
+
+def calculate_scale_factor_to_meters(scale_factor, unit_identifier):
+    # Dictionary to convert scale factor from various units to meters
+    unit_to_meter_conversion = {
+        c4d.PREF_UNITS_BASIC_KM: 1000,
+        c4d.PREF_UNITS_BASIC_M: 1,
+        c4d.PREF_UNITS_BASIC_CM: 0.01,
+        c4d.PREF_UNITS_BASIC_MM: 0.001,
+        c4d.PREF_UNITS_BASIC_MICRO: 1e-6,
+        c4d.PREF_UNITS_BASIC_NM: 1e-9,
+        c4d.PREF_UNITS_BASIC_MILE: 1609.34,
+        c4d.PREF_UNITS_BASIC_YARD: 0.9144,
+        c4d.PREF_UNITS_BASIC_FOOT: 0.3048,
+        c4d.PREF_UNITS_BASIC_INCH: 0.0254,
+    }
+    
+    meter_conversion = unit_to_meter_conversion.get(unit_identifier, None)
+    if meter_conversion is not None:
+        adjusted_scale_factor = scale_factor * meter_conversion
+        return adjusted_scale_factor
+    else:
+        print("Unknown unit identifier, cannot calculate scale factor to meters.")
+        return None
+
+def adjust_object_scale(obj, scale_factor):
+    """Scales an object by a given factor."""
+    # Retrieve the current global matrix of the object
+    mg = obj.GetMg()
+    
+    # Scale each axis of the matrix by the scale factor
+    mg.v1 /= scale_factor  # Scale X axis
+    mg.v2 /= scale_factor  # Scale Y axis
+    mg.v3 /= scale_factor  # Scale Z axis
+    
+    mg.off /= scale_factor
+    
+    # Set the modified global matrix back to the object
+    obj.SetMg(mg)
+
 def process_import(doc, file_path, default_name, is_camera=False):
+    # Attempt to retrieve the scale factor based on OBJ import settings
+    scale_factor, unit_identifier = get_obj_import_scale_factor()
+    adjusted_scale_factor = calculate_scale_factor_to_meters(scale_factor, unit_identifier) if scale_factor else 1
+
     if os.path.isfile(file_path):
         objects_before_import = set(doc.GetObjects())
         if c4d.documents.MergeDocument(doc, file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS):
@@ -16,6 +73,8 @@ def process_import(doc, file_path, default_name, is_camera=False):
             new_objects = objects_after_import - objects_before_import
             for obj in new_objects:
                 obj.SetName(default_name)
+                if not is_camera:
+                    adjust_object_scale(obj, adjusted_scale_factor)
             if is_camera:
                 assign_safe_frame_tag_to_camera(new_objects)
             c4d.EventAdd()
