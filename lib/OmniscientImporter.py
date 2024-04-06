@@ -2,7 +2,8 @@ import c4d
 import json
 import logging
 import os
-from c4d import storage, documents
+from c4d import documents
+from videoBackground import create_background_with_video_material
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,12 +90,12 @@ def process_import(doc, file_path, default_name, is_camera=False):
             logger.info(f"Successfully imported: {file_path}")
             objects_after_import = set(doc.GetObjects())
             new_objects = objects_after_import - objects_before_import
-        for obj in new_objects:
-            obj.SetName(default_name)
-            adjust_object_scale(obj, adjusted_scale_factor, is_camera)
-            if is_camera:
-                assign_safe_frame_tag_to_camera(new_objects)
-            c4d.EventAdd()
+            for obj in new_objects:
+                obj.SetName(default_name)
+                adjust_object_scale(obj, adjusted_scale_factor, is_camera)
+                if is_camera:
+                    assign_safe_frame_tag_to_camera(new_objects)
+                c4d.EventAdd()
         else:
             logger.error(f"Failed to import: {file_path}")
     else:
@@ -145,6 +146,13 @@ def import_omni_file(doc, file_path):
         if camera_path:
             cam_path = os.path.join(os.path.dirname(file_path), camera_path)
             process_import(doc, cam_path, "Camera_Omni", is_camera=True)
+
+        # Create material from video
+        video_path = os.path.join(os.path.dirname(file_path), video_data.get("relative_path", ""))
+        if os.path.exists(video_path):
+            create_background_with_video_material(doc, video_path)
+        else:
+            logger.warning(f"Video file not found: {video_path}")
 
     except Exception as e:
         logger.exception("An error occurred while processing the .omni file: ", exc_info=e)
