@@ -25,6 +25,7 @@ def process_import(doc, file_path, default_name, is_camera=False):
             for obj in new_objects:
                 obj.SetName(default_name)
                 if is_camera:
+                    adjust_alembic_camera_settings(doc, obj)
                     assign_safe_frame_tag_to_camera(doc, new_objects)
                 c4d.EventAdd()
         else:
@@ -43,6 +44,11 @@ def assign_safe_frame_tag_to_camera(doc, new_objects):
             background = doc.SearchObject('Background_Omni')
             if background:
                 safe_frame_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
+
+def adjust_alembic_camera_settings(doc, obj, animation_offset_frames=1):
+    if obj.GetType() == 1028083:  # Check if the object is an Alembic camera
+        animation_offset = c4d.BaseTime(animation_offset_frames, doc.GetFps())
+        obj[c4d.ALEMBIC_ANIMATION_OFFSET] = animation_offset
 
 def update_project_settings(doc, width, height, fps):
     rd = doc.GetActiveRenderData()
