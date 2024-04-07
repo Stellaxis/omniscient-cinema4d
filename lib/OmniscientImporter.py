@@ -25,19 +25,24 @@ def process_import(doc, file_path, default_name, is_camera=False):
             for obj in new_objects:
                 obj.SetName(default_name)
                 if is_camera:
-                    assign_safe_frame_tag_to_camera(new_objects)
+                    assign_safe_frame_tag_to_camera(doc, new_objects)
                 c4d.EventAdd()
         else:
             logger.error(f"Failed to import: {file_path}")
     else:
         logger.warning(f"File not found: {file_path}")
 
-def assign_safe_frame_tag_to_camera(new_objects):
+def assign_safe_frame_tag_to_camera(doc, new_objects):
     for obj in new_objects:
         if obj.GetType() == 1028083 or obj.GetType() == 5103:
             safe_frame_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
             obj.InsertTag(safe_frame_tag)
             logger.info(f"OmniscientSceneControl assigned to: {obj.GetName()}")
+
+            # Link background to tag
+            background = doc.SearchObject('Background_Omni')
+            if background:
+                safe_frame_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
 
 def update_project_settings(doc, width, height, fps):
     rd = doc.GetActiveRenderData()
@@ -65,6 +70,14 @@ def import_omni_file(doc, file_path):
         # Update Cinema 4D project settings
         update_project_settings(doc, width, height, fps)
 
+        # Create material from video and set project settings
+        video_path = os.path.join(os.path.dirname(file_path), video_data.get("relative_path", ""))
+        if os.path.exists(video_path):
+            create_background_with_video_material(doc, video_path)
+            set_project_settings_from_video(doc, video_path)
+        else:
+            logger.warning(f"Video file not found: {video_path}")
+
         # Handle geometry import
         geometry_paths = omni_data.get("data", {}).get("geometry", {}).get("relative_path", [])
         if geometry_paths:
@@ -77,14 +90,6 @@ def import_omni_file(doc, file_path):
         if camera_path:
             cam_path = os.path.join(os.path.dirname(file_path), camera_path)
             process_import(doc, cam_path, "Camera_Omni", is_camera=True)
-
-        # Create material from video and set project settings
-        video_path = os.path.join(os.path.dirname(file_path), video_data.get("relative_path", ""))
-        if os.path.exists(video_path):
-            create_background_with_video_material(doc, video_path)
-            set_project_settings_from_video(doc, video_path)
-        else:
-            logger.warning(f"Video file not found: {video_path}")
 
     except Exception as e:
         logger.exception("An error occurred while processing the .omni file: ", exc_info=e)

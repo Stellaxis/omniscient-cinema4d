@@ -40,5 +40,11 @@ CONTAINER OmniscientSceneControl
             }
             DEFAULT 2003;
         }
+
+        LINK OMNISCIENTSCENECONTROL_BACKGROUND_LINK
+        {
+            ACCEPT { Obackground; }
+            ANIM OFF;
+        }
     }
 }

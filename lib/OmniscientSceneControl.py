@@ -8,7 +8,7 @@ class OmniscientSceneControl(plugins.TagData):
         node[c4d.OMNISCIENTSCENECONTROL_VIEWPORT_GRID_VISIBILITY] = c4d.OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM
         return True
 
-    def apply_visibility_setting(self, doc, user_setting, base_draw, c4d_attributes, viewing_through_camera, search_object_name=None):
+    def apply_visibility_setting(self, doc, user_setting, base_draw, c4d_attributes, viewing_through_camera, obj=None):
         visibility_state_map = {
             c4d.OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA: viewing_through_camera,     # Through Camera
             c4d.OMNISCIENTSCENECONTROL_ALWAYS: True,                                    # Always
@@ -19,11 +19,9 @@ class OmniscientSceneControl(plugins.TagData):
 
         visibility_mode = c4d.MODE_ON if visibility_state else c4d.MODE_OFF
 
-        if search_object_name:
-            obj = doc.SearchObject(search_object_name)
-            if obj:
-                obj[c4d.ID_BASEOBJECT_VISIBILITY_EDITOR] = visibility_mode
-                obj[c4d.ID_BASEOBJECT_VISIBILITY_RENDER] = visibility_mode
+        if obj:
+            obj[c4d.ID_BASEOBJECT_VISIBILITY_EDITOR] = visibility_mode
+            obj[c4d.ID_BASEOBJECT_VISIBILITY_RENDER] = visibility_mode
         else:
             if base_draw and c4d_attributes:
                 for attr in c4d_attributes:
@@ -59,14 +57,16 @@ class OmniscientSceneControl(plugins.TagData):
             viewingThroughThisCamera
         )
         # Control the background object visibility based on the user setting
-        self.apply_visibility_setting(
-            doc,
-            background_visibility_setting,
-            None,
-            None,
-            viewingThroughThisCamera,
-            search_object_name='Omni_Background'
-        )
+        background_object = tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK]
+        if background_object:
+            self.apply_visibility_setting(
+                doc,
+                background_visibility_setting,
+                None,
+                None,
+                viewingThroughThisCamera,
+                background_object
+            )
         # Control the safe frame visibility based on the user setting
         self.apply_visibility_setting(
             doc,
