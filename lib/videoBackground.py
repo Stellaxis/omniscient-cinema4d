@@ -75,6 +75,7 @@ def create_background_with_video_material(doc, video_path: str):
     textureTag.SetMaterial(material)
     textureTag[c4d.TEXTURETAG_PROJECTION] = c4d.TEXTURETAG_PROJECTION_FRONTAL
     background.InsertTag(textureTag)
+    background.SetName('Omni_Background')
     doc.InsertObject(background)
     c4d.EventAdd()
 

@@ -1,5 +1,13 @@
 STRINGTABLE Tsafeframetag
 {
-    Tsafeframetag         "Omniscient - Safe Frame Visibility";
-    ENABLE_SAFE_FRAME     "Enable Safe Frame";
+    Tsafeframetag                        "Omniscient - Safe Frame Visibility";
+    
+    BACKGROUND_VISIBILITY                "Background Visibility";
+    SAFE_FRAME_VISIBILITY                "Safe Frame Visibility";
+    VIEWPORT_GRID_VISIBILITY             "Viewport Grid Visibility";
+    
+    Tsafeframetag::VIEW_THROUGH_CAMERA   "Viewing Through Camera";
+    Tsafeframetag::ALWAYS                "Always";
+    Tsafeframetag::NEVER                 "Never";
+    Tsafeframetag::ONLY_NOT_THROUGH_CAM  "Only When Not Viewing Through Camera";
 }

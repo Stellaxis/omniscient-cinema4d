@@ -5,6 +5,37 @@ CONTAINER Tsafeframetag
     
     GROUP ID_TAGPROPERTIES
     {
-        BOOL ENABLE_SAFE_FRAME { }
+        LONG BACKGROUND_VISIBILITY
+        {
+            CYCLE
+            {
+                Tsafeframetag::VIEW_THROUGH_CAMERA;
+                Tsafeframetag::ALWAYS;
+                Tsafeframetag::NEVER;
+                Tsafeframetag::ONLY_NOT_THROUGH_CAM;
+            }
+        }
+
+        LONG SAFE_FRAME_VISIBILITY
+        {
+            CYCLE
+            {
+                Tsafeframetag::VIEW_THROUGH_CAMERA;
+                Tsafeframetag::ALWAYS;
+                Tsafeframetag::NEVER;
+                Tsafeframetag::ONLY_NOT_THROUGH_CAM;
+            }
+        }
+        
+        LONG VIEWPORT_GRID_VISIBILITY
+        {
+            CYCLE
+            {
+                Tsafeframetag::VIEW_THROUGH_CAMERA;
+                Tsafeframetag::ALWAYS;
+                Tsafeframetag::NEVER;
+                Tsafeframetag::ONLY_NOT_THROUGH_CAM;
+            }
+        }
     }
 }
