@@ -9,11 +9,11 @@ lib_path = os.path.join(parent_directory, 'lib')
 sys.path.insert(0, lib_path)
 
 import OmniscientImporter as omniscient_importer
-from safeFrameTag import SafeFrameTag
+from OmniscientSceneControl import OmniscientSceneControl
 
 # Unique plugin IDs
 PLUGIN_ID = 1063004
-SAFE_FRAME_TAG_ID = 1063016 
+OMNISCIENT_SCENE_CONTROL_TAG_ID = 1063027;
 OMNI_FILE_LOADER_ID = 1063022
 
 class OmniscientImporterPlugin(c4d.plugins.CommandData):
@@ -48,15 +48,15 @@ def main():
             dat=OmniscientImporterPlugin()):
         raise RuntimeError("Failed to register Omniscient Importer plugin.")
 
-    # Register the SafeFrame Tag
+    # Register the OmniscientSceneControl Tag
     if not c4d.plugins.RegisterTagPlugin(
-            id=SAFE_FRAME_TAG_ID,
-            str="SafeFrameTag",
+            id=OMNISCIENT_SCENE_CONTROL_TAG_ID,
+            str="Omniscient",
             info=c4d.TAG_EXPRESSION | c4d.TAG_VISIBLE,
-            g=SafeFrameTag,
-            description="Tsafe_frame",
+            g=OmniscientSceneControl,
+            description="OmniscientSceneControl",
             icon=icon_bitmap):
-        raise RuntimeError("Failed to register SafeFrame Tag.")
+        raise RuntimeError("Failed to register OmniscientSceneControl Tag.")
 
     # Register the .omni file loader
     if not c4d.plugins.RegisterSceneLoaderPlugin(

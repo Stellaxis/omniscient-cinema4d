@@ -10,6 +10,8 @@ from adjustScale import adjust_scale
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+OMNISCIENT_SCENE_CONTROL_TAG_ID = 1063027
+
 def process_import(doc, file_path, default_name, is_camera=False):
     adjust_scale('abc', 1.0, c4d.DOCUMENT_UNIT_M)
     adjust_scale('obj', 1.0, c4d.DOCUMENT_UNIT_M)
@@ -33,9 +35,9 @@ def process_import(doc, file_path, default_name, is_camera=False):
 def assign_safe_frame_tag_to_camera(new_objects):
     for obj in new_objects:
         if obj.GetType() == 1028083 or obj.GetType() == 5103:
-            safe_frame_tag = c4d.BaseTag(1063016)
+            safe_frame_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
             obj.InsertTag(safe_frame_tag)
-            logger.info(f"SafeFrameTag assigned to: {obj.GetName()}")
+            logger.info(f"OmniscientSceneControl assigned to: {obj.GetName()}")
 
 def update_project_settings(doc, width, height, fps):
     rd = doc.GetActiveRenderData()

@@ -1,0 +1,44 @@
+CONTAINER OmniscientSceneControl
+{
+    NAME OmniscientSceneControl;
+    INCLUDE Tbase;
+
+    GROUP ID_TAGPROPERTIES
+    {
+        LONG OMNISCIENTSCENECONTROL_BACKGROUND_VISIBILITY
+        {
+            CYCLE
+            {
+                OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA;
+                OMNISCIENTSCENECONTROL_ALWAYS;
+                OMNISCIENTSCENECONTROL_NEVER;
+                OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM;
+            }
+            DEFAULT 2000;
+        }
+
+        LONG OMNISCIENTSCENECONTROL_SAFE_FRAME_VISIBILITY
+        {
+            CYCLE
+            {
+                OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA;
+                OMNISCIENTSCENECONTROL_ALWAYS;
+                OMNISCIENTSCENECONTROL_NEVER;
+                OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM;
+            }
+            DEFAULT 2000;
+        }
+        
+        LONG OMNISCIENTSCENECONTROL_VIEWPORT_GRID_VISIBILITY
+        {
+            CYCLE
+            {
+                OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA;
+                OMNISCIENTSCENECONTROL_ALWAYS;
+                OMNISCIENTSCENECONTROL_NEVER;
+                OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM;
+            }
+            DEFAULT 2003;
+        }
+    }
+}

@@ -1,42 +1,19 @@
 import c4d
 from c4d import plugins
 
-class SafeFrameTag(plugins.TagData):
-    # Define constants for our cycle options
-    VISIBILITY_OPTIONS = {
-        0: "Through Camera",                      # Visible only when viewing through the camera
-        1: "Always",                              # Always visible
-        2: "Never" ,                              # Never visible
-        3: "Only When Not Viewing Through Camera" # Visible only when not viewing through the camera
-    }
-
+class OmniscientSceneControl(plugins.TagData):
     def Init(self, node):
-        self.add_visibility_option(node, 1, "Background Visibility")
-        self.add_visibility_option(node, 2, "Safe Frame Visibility")
-        self.add_visibility_option(node, 3, "Viewport Grid Visibility", default=3)
-
+        node[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_VISIBILITY] = c4d.OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA
+        node[c4d.OMNISCIENTSCENECONTROL_SAFE_FRAME_VISIBILITY] = c4d.OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA
+        node[c4d.OMNISCIENTSCENECONTROL_VIEWPORT_GRID_VISIBILITY] = c4d.OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM
         return True
-    
-    def add_visibility_option(self, node, id, name, default=0):
-        bc = c4d.GetCustomDataTypeDefault(c4d.DTYPE_LONG)
-        bc[c4d.DESC_NAME] = name
-        
-        cycle = c4d.BaseContainer()
-        cycle[0] = "Viewing Through Camera"
-        cycle[1] = "Always"
-        cycle[2] = "Never"
-        cycle[3] = "Only When Not Viewing Through Camera"
-        bc[c4d.DESC_CYCLE] = cycle
-        
-        userData = node.AddUserData(bc)
-        node[userData] = default
 
     def apply_visibility_setting(self, doc, user_setting, base_draw, c4d_attributes, viewing_through_camera, search_object_name=None):
         visibility_state_map = {
-            0: viewing_through_camera,     # Through Camera
-            1: True,                       # Always
-            2: False,                      # Never
-            3: not viewing_through_camera  # Only When Not Viewing Through Camera
+            c4d.OMNISCIENTSCENECONTROL_VIEW_THROUGH_CAMERA: viewing_through_camera,     # Through Camera
+            c4d.OMNISCIENTSCENECONTROL_ALWAYS: True,                                    # Always
+            c4d.OMNISCIENTSCENECONTROL_NEVER: False,                                    # Never
+            c4d.OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM: not viewing_through_camera # Only When Not Viewing Through Camera
         }
         visibility_state = visibility_state_map.get(user_setting, True)
 
@@ -54,6 +31,9 @@ class SafeFrameTag(plugins.TagData):
                         base_draw[attr] = c4d.MODE_OFF if visibility_state else c4d.MODE_ON
 
     def Execute(self, tag, doc, op, bt, priority, flags):
+        if not tag:
+            return False
+
         # Check if the tag's host object is either an Alembic Generator or a Cinema 4D camera
         isCamera = op.GetType() in [1028083, 5103]  # IDs for Alembic Generator and Cinema 4D camera
 
@@ -66,9 +46,9 @@ class SafeFrameTag(plugins.TagData):
         viewingThroughThisCamera = isCamera and (op == activeCamera or (op.GetDown() and op.GetDown() == activeCamera))
 
         # Retrieve user preferences for viewport grid, background, and safe frame visibility
-        background_visibility_setting = tag[c4d.ID_USERDATA, 1]
-        safe_frame_visibility_setting = tag[c4d.ID_USERDATA, 2]
-        viewport_grid_visibility_setting = tag[c4d.ID_USERDATA, 3]
+        background_visibility_setting = tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_VISIBILITY]
+        safe_frame_visibility_setting = tag[c4d.OMNISCIENTSCENECONTROL_SAFE_FRAME_VISIBILITY]
+        viewport_grid_visibility_setting = tag[c4d.OMNISCIENTSCENECONTROL_VIEWPORT_GRID_VISIBILITY]
 
         # Control the viewport grid, world axis, and horizon visibility based on the user setting
         self.apply_visibility_setting(
