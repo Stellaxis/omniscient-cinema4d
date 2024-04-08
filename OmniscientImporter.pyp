@@ -10,11 +10,13 @@ sys.path.insert(0, lib_path)
 
 import OmniscientImporter as omniscient_importer
 from OmniscientSceneControl import OmniscientSceneControl
+from OmniscientMessage import OmniscientMessage
 
 # Unique plugin IDs
 PLUGIN_ID = 1063004
 OMNISCIENT_SCENE_CONTROL_TAG_ID = 1063027;
 OMNI_FILE_LOADER_ID = 1063022
+OMNISCIENT_MESSAGE_ID = 1063029
 
 class OmniscientImporterPlugin(c4d.plugins.CommandData):
     def Execute(self, doc):
@@ -37,6 +39,14 @@ def main():
     result, _ = icon_bitmap.InitWith(icon_path)
     if result != c4d.IMAGERESULT_OK:
         raise MemoryError("Failed to initialize BaseBitmap with icon.png.")
+
+    # Register the Omniscient Message plugin
+    if not c4d.plugins.RegisterMessagePlugin(
+            id=OMNISCIENT_MESSAGE_ID,
+            str="OmniscientMessage",
+            info=0,
+            dat=OmniscientMessage()):
+        print("Failed to register OmniscientMessage plugin.")
 
     # Register the Omniscient Importer plugin
     if not c4d.plugins.RegisterCommandPlugin(

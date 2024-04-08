@@ -6,6 +6,8 @@ from c4d import documents
 from videoBackground import create_background_with_video_material
 from projectSettings import set_project_settings_from_video
 from adjustScale import adjust_scale
+import plugin_version
+from OmniscientMessage import OMNISCIENT_DIALOG_EVENT_ID, DialogDataStorage
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,6 +69,16 @@ def import_omni_file(doc, file_path):
             omni_data = json.load(file)
         logger.info("Parsed .omni data.")
 
+        # Version check
+        minimum_required_version = omni_data.get("cinema4d", {}).get("minimum_plugin_version", "0.0.0")
+        try:
+            plugin_version.check_plugin_version(minimum_required_version)
+        except plugin_version.UnsupportedVersionException as e:
+            data_storage = DialogDataStorage.getInstance()
+            data_storage.set_data("Omniscient", str(e), e.update_url)
+            c4d.SpecialEventAdd(OMNISCIENT_DIALOG_EVENT_ID)
+            return
+        
         # Extract project settings from .omni data
         video_data = omni_data.get("data", {}).get("video", {})
         width = int(float(video_data.get("resolution", {}).get("width", "1920")))
