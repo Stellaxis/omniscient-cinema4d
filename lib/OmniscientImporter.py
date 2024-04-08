@@ -114,7 +114,13 @@ def import_omni_file(doc, file_path):
 
 def main(doc):
     file_path = c4d.storage.LoadDialog(title="Select .omni File", flags=c4d.FILESELECT_LOAD, force_suffix="omni")
+    
+    # Check if a file was selected
     if file_path:
+        # Check if the selected file has the .omni extension
+        if not file_path.lower().endswith('.omni'):
+            c4d.gui.MessageDialog("Please select a file with the .omni extension.")
+            return
         import_omni_file(doc, file_path)
     else:
         print("No file selected.")
