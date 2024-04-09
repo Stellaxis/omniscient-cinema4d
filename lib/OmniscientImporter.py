@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 OMNISCIENT_SCENE_CONTROL_TAG_ID = 1063027
 
 def process_import(doc, file_path, default_name, is_camera=False):
+    # Check if the file is an Alembic file when importing a camera
+    if is_camera and not file_path.lower().endswith('.abc'):
+        error_message = "Camera import failed. The Omniscient importer requires the camera as an Alembic (.abc)"
+        logger.error(f"{error_message}: {file_path}")
+        c4d.gui.MessageDialog(error_message)
+        return
+    
     adjust_scale('abc', 1.0, c4d.DOCUMENT_UNIT_M)
     adjust_scale('obj', 1.0, c4d.DOCUMENT_UNIT_M)
 
