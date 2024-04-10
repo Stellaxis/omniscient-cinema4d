@@ -14,7 +14,14 @@ logger = logging.getLogger(__name__)
 
 OMNISCIENT_SCENE_CONTROL_TAG_ID = 1063027
 
-def process_import(doc, file_path, default_name, is_camera=False):
+def process_import(doc, file_path, default_name, import_options=None):
+    if import_options is None:
+        import_options = {}
+
+    is_camera = import_options.get("is_camera", False)
+    camera_fps = import_options.get("camera_fps")
+    video_fps = import_options.get("video_fps")
+    
     # Check if the file is an Alembic file when importing a camera
     if is_camera and not file_path.lower().endswith('.abc'):
         error_message = "Camera import failed. The Omniscient importer requires the camera as an Alembic (.abc)"
@@ -34,7 +41,7 @@ def process_import(doc, file_path, default_name, is_camera=False):
             for obj in new_objects:
                 obj.SetName(default_name)
                 if is_camera:
-                    adjust_alembic_camera_settings(doc, obj)
+                    adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
                     assign_safe_frame_tag_to_camera(doc, new_objects)
                 c4d.EventAdd()
         else:
@@ -54,10 +61,16 @@ def assign_safe_frame_tag_to_camera(doc, new_objects):
             if background:
                 safe_frame_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
 
-def adjust_alembic_camera_settings(doc, obj, animation_offset_frames=1):
-    if obj.GetType() == 1028083:  # Check if the object is an Alembic camera
+def adjust_alembic_camera_settings(doc, obj, animation_offset_frames=1, camera_fps=None, video_fps=None):
+    # Check if the object is an Alembic camera
+    if obj.GetType() == 1028083:
         animation_offset = c4d.BaseTime(animation_offset_frames, doc.GetFps())
         obj[c4d.ALEMBIC_ANIMATION_OFFSET] = animation_offset
+
+        # Calculate the speed adjustment factor based on FPS values, if FPS values are provided
+        if camera_fps is not None and video_fps is not None:
+            speed_adjustment_factor = video_fps / camera_fps
+            obj[c4d.ALEMBIC_ANIMATION_SPEED] = speed_adjustment_factor
 
 def update_project_settings(doc, width, height, fps):
     rd = doc.GetActiveRenderData()
@@ -86,6 +99,10 @@ def import_omni_file(doc, file_path):
             c4d.SpecialEventAdd(OMNISCIENT_DIALOG_EVENT_ID)
             return
         
+        # Extract FPS values
+        video_fps = float(omni_data.get("data", {}).get("video", {}).get("fps")) if "fps" in omni_data.get("data", {}).get("video", {}) else None
+        camera_fps = float(omni_data.get("data", {}).get("camera", {}).get("fps")) if "fps" in omni_data.get("data", {}).get("camera", {}) else None
+
         # Extract project settings from .omni data
         video_data = omni_data.get("data", {}).get("video", {})
         width = int(float(video_data.get("resolution", {}).get("width", "1920")))
@@ -114,7 +131,12 @@ def import_omni_file(doc, file_path):
         camera_path = omni_data.get("data", {}).get("camera", {}).get("relative_path", "")
         if camera_path:
             cam_path = os.path.join(os.path.dirname(file_path), camera_path)
-            process_import(doc, cam_path, "Camera_Omni", is_camera=True)
+            camera_import_options = {
+                "is_camera": True,
+                "camera_fps": camera_fps,
+                "video_fps": video_fps
+            }
+            process_import(doc, cam_path, "Camera_Omni", import_options=camera_import_options)
 
     except Exception as e:
         logger.exception("An error occurred while processing the .omni file: ", exc_info=e)
