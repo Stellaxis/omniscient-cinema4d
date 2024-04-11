@@ -58,12 +58,13 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
             # Adjust the Alembic camera settings first, if needed
             if camera_fps is not None and video_fps is not None:
                 adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
+                logger.info(f"Camera settings adjusted")
             
             if bake_camera:
                 try:
                     # Bake the Alembic as a new camera
                     new_camera = bake_alembic_camera_animation(doc, obj)
-                    logger.info(f"Camera settings adjusted and baked: {new_camera.GetName()}")
+                    logger.info(f"Alembic camera animation baked to: {new_camera.GetName()}")
                     
                     # Assign omniscient scene control tag to the new camera
                     assign_omniscient_control_tag_to_camera(doc, [new_camera])

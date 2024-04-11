@@ -14,21 +14,31 @@ def CreateKey(doc, curve, time, value, interpolation=c4d.CINTERPOLATION_LINEAR):
 
 def set_camera_properties(new_camera, alembic_camera):
     """Sets the properties of the new camera based on the Alembic camera."""
+    def get_property(container, primary_id, secondary_id, property_id):
+        try:
+            # Try primary ID first
+            return container[1028637, primary_id, property_id]
+        except:
+            # Fallback to secondary ID
+            return container[1028637, secondary_id, property_id]
+
     # Focal Length
-    focal_length = alembic_camera[1028637, 1057516, 500]
+    focal_length = get_property(alembic_camera, 1057516, 5103, 500)
     new_camera[c4d.CAMERA_FOCUS] = focal_length
 
     # Sensor Size (Aperture)
-    sensor_size_vector = alembic_camera[1028637, 1057516, 7002]
-    new_camera[c4d.CAMERAOBJECT_APERTURE] = sensor_size_vector.x
+    sensor_size_width = get_property(alembic_camera, 1057516, 5103, 1006)
+    new_camera[c4d.CAMERAOBJECT_APERTURE] = sensor_size_width
 
     # Film Offset
-    film_offset_vector = alembic_camera[1028637, 1057516, 7012]
-    new_camera[c4d.CAMERAOBJECT_FILM_OFFSET_X] = film_offset_vector.x
-    new_camera[c4d.CAMERAOBJECT_FILM_OFFSET_Y] = film_offset_vector.y
+    film_offset_x = get_property(alembic_camera, 1057516, 5103, 1118)
+    film_offset_y = get_property(alembic_camera, 1057516, 5103, 1119)
+
+    new_camera[c4d.CAMERAOBJECT_FILM_OFFSET_X] = film_offset_x
+    new_camera[c4d.CAMERAOBJECT_FILM_OFFSET_Y] = film_offset_y
 
     # Projection Type
-    projection_id = alembic_camera[1028637, 1057516, 1001]
+    projection_id = get_property(alembic_camera, 1057516, 5103, 1001)
     new_camera[c4d.CAMERA_PROJECTION] = projection_id
 
 def bake_alembic_camera_animation(doc, alembic_camera):
@@ -72,5 +82,4 @@ def bake_alembic_camera_animation(doc, alembic_camera):
     doc.SetTime(original_time)
     c4d.EventAdd()
     
-    print(f"Alembic camera animation baked to '{new_camera.GetName()}'.")
     return new_camera
