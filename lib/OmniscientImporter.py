@@ -65,8 +65,8 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
                     new_camera = bake_alembic_camera_animation(doc, obj)
                     logger.info(f"Camera settings adjusted and baked: {new_camera.GetName()}")
                     
-                    # Assign safe frame tag to the new camera
-                    assign_safe_frame_tag_to_camera(doc, [new_camera])
+                    # Assign omniscient scene control tag to the new camera
+                    assign_omniscient_control_tag_to_camera(doc, [new_camera])
                     
                     # Remove the Alembic camera, since it's replaced by the baked one
                     doc.AddUndo(c4d.UNDOTYPE_DELETE, obj)
@@ -75,21 +75,21 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
                     logger.error(f"Error during camera processing: {e}")
             else:
                 # If not baking, ensure the Alembic camera still receives any applicable updates
-                assign_safe_frame_tag_to_camera(doc, [obj])
+                assign_omniscient_control_tag_to_camera(doc, [obj])
 
     c4d.EventAdd()
 
-def assign_safe_frame_tag_to_camera(doc, camera_objects):
-    """Assigns safe frame tags to given camera objects."""
+def assign_omniscient_control_tag_to_camera(doc, camera_objects):
+    """Assigns omniscient scene control tag to given camera objects."""
     for camera in camera_objects:
-        safe_frame_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
-        camera.InsertTag(safe_frame_tag)
+        omniscient_control_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
+        camera.InsertTag(omniscient_control_tag)
         logger.info(f"OmniscientSceneControl assigned to: {camera.GetName()}")
         
         # Link background to tag, assuming one background object named 'Background_Omni'
         background = doc.SearchObject('Background_Omni')
         if background:
-            safe_frame_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
+            omniscient_control_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
 
 
 def adjust_alembic_camera_settings(doc, obj, animation_offset_frames=1, camera_fps=None, video_fps=None):
