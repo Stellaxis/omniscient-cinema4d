@@ -69,6 +69,9 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
                     # Assign omniscient scene control tag to the new camera
                     assign_omniscient_control_tag_to_camera(doc, [new_camera])
                     
+                    # Make the viewport look through the Alembic camera
+                    make_viewport_look_through_camera(doc, new_camera)
+
                     # Remove the Alembic camera, since it's replaced by the baked one
                     doc.AddUndo(c4d.UNDOTYPE_DELETE, obj)
                     obj.Remove()
@@ -77,6 +80,9 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
             else:
                 # If not baking, ensure the Alembic camera still receives any applicable updates
                 assign_omniscient_control_tag_to_camera(doc, [obj])
+
+                # Make the viewport look through the Alembic camera
+                make_viewport_look_through_camera(doc, obj)
 
     c4d.EventAdd()
 
@@ -122,6 +128,17 @@ def set_viewport_to_lines(doc):
         return
 
     bd[c4d.BASEDRAW_DATA_SDISPLAYACTIVE] = c4d.BASEDRAW_SDISPLAY_NOSHADING
+
+    c4d.EventAdd()
+
+def make_viewport_look_through_camera(doc, camera):
+    """Sets the active viewport to look through the given camera."""
+    bd = doc.GetActiveBaseDraw()
+    if bd is None:
+        logger.error("No active BaseDraw found. Cannot set camera view.")
+        return
+
+    bd.SetSceneCamera(camera)
 
     c4d.EventAdd()
 
