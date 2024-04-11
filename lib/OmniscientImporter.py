@@ -114,6 +114,17 @@ def update_project_settings(doc, width, height, fps):
     documents.SetActiveDocument(doc)
     c4d.EventAdd()
 
+def set_viewport_to_lines(doc):
+    """Sets the active viewport display to 'Lines' mode."""
+    bd = doc.GetActiveBaseDraw()
+    if bd is None:
+        logger.error("No active BaseDraw found. Cannot set viewport to Lines mode.")
+        return
+
+    bd[c4d.BASEDRAW_DATA_SDISPLAYACTIVE] = c4d.BASEDRAW_SDISPLAY_NOSHADING
+
+    c4d.EventAdd()
+
 def import_omni_file(doc, file_path):
     logger.info(f"Selected .omni file: {file_path}")
     try:
@@ -170,6 +181,8 @@ def import_omni_file(doc, file_path):
                 "bake_camera": True
             }
             process_import(doc, cam_path, "Camera_Omni", import_options=camera_import_options)
+        
+        set_viewport_to_lines(doc)
 
     except Exception as e:
         logger.exception("An error occurred while processing the .omni file: ", exc_info=e)
