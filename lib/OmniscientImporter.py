@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from c4d import documents
+from cameraBaker import bake_alembic_camera_animation
 from videoBackground import create_background_with_video_material
 from projectSettings import set_project_settings_from_video
 from adjustScale import adjust_scale
@@ -18,6 +19,8 @@ def process_import(doc, file_path, default_name, import_options=None):
     if import_options is None:
         import_options = {}
 
+    bake_camera = import_options.get("bake_camera", False)
+    
     is_camera = import_options.get("is_camera", False)
     camera_fps = import_options.get("camera_fps")
     video_fps = import_options.get("video_fps")
@@ -41,25 +44,53 @@ def process_import(doc, file_path, default_name, import_options=None):
             for obj in new_objects:
                 obj.SetName(default_name)
                 if is_camera:
-                    adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
-                    assign_safe_frame_tag_to_camera(doc, new_objects)
+                    handle_camera_operations(doc, new_objects, camera_fps=camera_fps, video_fps=video_fps, bake_camera=bake_camera)
                 c4d.EventAdd()
         else:
             logger.error(f"Failed to import: {file_path}")
     else:
         logger.warning(f"File not found: {file_path}")
 
-def assign_safe_frame_tag_to_camera(doc, new_objects):
+def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, bake_camera=False):
+    """Handles camera-specific operations, adjusts settings, and optionally replaces the Alembic camera with a baked one."""
     for obj in new_objects:
-        if obj.GetType() == 1028083 or obj.GetType() == 5103:
-            safe_frame_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
-            obj.InsertTag(safe_frame_tag)
-            logger.info(f"OmniscientSceneControl assigned to: {obj.GetName()}")
+        if obj.GetType() == 1028083:  # Check if it's an Alembic camera
+            # Adjust the Alembic camera settings first, if needed
+            if camera_fps is not None and video_fps is not None:
+                adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
+            
+            if bake_camera:
+                try:
+                    # Bake the Alembic as a new camera
+                    new_camera = bake_alembic_camera_animation(doc, obj)
+                    logger.info(f"Camera settings adjusted and baked: {new_camera.GetName()}")
+                    
+                    # Assign safe frame tag to the new camera
+                    assign_safe_frame_tag_to_camera(doc, [new_camera])
+                    
+                    # Remove the Alembic camera, since it's replaced by the baked one
+                    doc.AddUndo(c4d.UNDOTYPE_DELETE, obj)
+                    obj.Remove()
+                except Exception as e:
+                    logger.error(f"Error during camera processing: {e}")
+            else:
+                # If not baking, ensure the Alembic camera still receives any applicable updates
+                assign_safe_frame_tag_to_camera(doc, [obj])
 
-            # Link background to tag
-            background = doc.SearchObject('Background_Omni')
-            if background:
-                safe_frame_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
+    c4d.EventAdd()
+
+def assign_safe_frame_tag_to_camera(doc, camera_objects):
+    """Assigns safe frame tags to given camera objects."""
+    for camera in camera_objects:
+        safe_frame_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
+        camera.InsertTag(safe_frame_tag)
+        logger.info(f"OmniscientSceneControl assigned to: {camera.GetName()}")
+        
+        # Link background to tag, assuming one background object named 'Background_Omni'
+        background = doc.SearchObject('Background_Omni')
+        if background:
+            safe_frame_tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK] = background
+
 
 def adjust_alembic_camera_settings(doc, obj, animation_offset_frames=1, camera_fps=None, video_fps=None):
     # Check if the object is an Alembic camera
@@ -134,7 +165,8 @@ def import_omni_file(doc, file_path):
             camera_import_options = {
                 "is_camera": True,
                 "camera_fps": camera_fps,
-                "video_fps": video_fps
+                "video_fps": video_fps,
+                "bake_camera": True
             }
             process_import(doc, cam_path, "Camera_Omni", import_options=camera_import_options)
 
