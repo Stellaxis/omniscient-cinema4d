@@ -28,7 +28,7 @@ def process_import(doc, file_path, default_name, import_options=None):
     # Check if the file is an Alembic file when importing a camera
     if is_camera and not file_path.lower().endswith('.abc'):
         error_message = "Camera import failed. The Omniscient importer requires the camera as an Alembic (.abc)"
-        logger.error(f"{error_message}: {file_path}")
+        logger.error("{}: {}".format(error_message, file_path))
         c4d.gui.MessageDialog(error_message)
         return
     
@@ -38,7 +38,7 @@ def process_import(doc, file_path, default_name, import_options=None):
     if os.path.isfile(file_path):
         objects_before_import = set(doc.GetObjects())
         if c4d.documents.MergeDocument(doc, file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS):
-            logger.info(f"Successfully imported: {file_path}")
+            logger.info("Successfully imported: {}".format(file_path))
             objects_after_import = set(doc.GetObjects())
             new_objects = objects_after_import - objects_before_import
             for obj in new_objects:
@@ -47,9 +47,9 @@ def process_import(doc, file_path, default_name, import_options=None):
                     handle_camera_operations(doc, new_objects, camera_fps=camera_fps, video_fps=video_fps, bake_camera=bake_camera)
                 c4d.EventAdd()
         else:
-            logger.error(f"Failed to import: {file_path}")
+            logger.error("Failed to import: {}".format(file_path))
     else:
-        logger.warning(f"File not found: {file_path}")
+        logger.warning("File not found: {}".format(file_path))
 
 def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, bake_camera=False):
     """Handles camera-specific operations, adjusts settings, and optionally replaces the Alembic camera with a baked one."""
@@ -58,13 +58,13 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
             # Adjust the Alembic camera settings first, if needed
             if camera_fps is not None and video_fps is not None:
                 adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
-                logger.info(f"Camera settings adjusted")
+                logger.info("Camera settings adjusted")
             
             if bake_camera:
                 try:
                     # Bake the Alembic as a new camera
                     new_camera = bake_alembic_camera_animation(doc, obj)
-                    logger.info(f"Alembic camera animation baked to: {new_camera.GetName()}")
+                    logger.info("Alembic camera animation baked to: {}".format(new_camera.GetName()))
                     
                     # Assign omniscient scene control tag to the new camera
                     assign_omniscient_control_tag_to_camera(doc, [new_camera])
@@ -76,7 +76,7 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
                     doc.AddUndo(c4d.UNDOTYPE_DELETE, obj)
                     obj.Remove()
                 except Exception as e:
-                    logger.error(f"Error during camera processing: {e}")
+                    logger.error("Error during camera processing: {}".format(e))
             else:
                 # If not baking, ensure the Alembic camera still receives any applicable updates
                 assign_omniscient_control_tag_to_camera(doc, [obj])
@@ -91,7 +91,7 @@ def assign_omniscient_control_tag_to_camera(doc, camera_objects):
     for camera in camera_objects:
         omniscient_control_tag = c4d.BaseTag(OMNISCIENT_SCENE_CONTROL_TAG_ID)
         camera.InsertTag(omniscient_control_tag)
-        logger.info(f"OmniscientSceneControl assigned to: {camera.GetName()}")
+        logger.info("OmniscientSceneControl assigned to: {}".format(camera.GetName()))
         
         # Link background to tag, assuming one background object named 'Background_Omni'
         background = doc.SearchObject('Background_Omni')
@@ -143,7 +143,7 @@ def make_viewport_look_through_camera(doc, camera):
     c4d.EventAdd()
 
 def import_omni_file(doc, file_path):
-    logger.info(f"Selected .omni file: {file_path}")
+    logger.info("Selected .omni file: {}".format(file_path))
     try:
         with open(file_path, "r") as file:
             omni_data = json.load(file)
@@ -178,7 +178,7 @@ def import_omni_file(doc, file_path):
             create_background_with_video_material(doc, video_path)
             set_project_settings_from_video(doc, video_path)
         else:
-            logger.warning(f"Video file not found: {video_path}")
+            logger.warning("Video file not found: {}".format(video_path))
 
         # Handle geometry import
         geometry_paths = omni_data.get("data", {}).get("geometry", {}).get("relative_path", [])
@@ -215,4 +215,4 @@ def main(doc):
             return
         import_omni_file(doc, file_path)
     else:
-        print("No file selected.")
+        logger.error("No file selected.")

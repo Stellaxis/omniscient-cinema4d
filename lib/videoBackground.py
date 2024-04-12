@@ -1,5 +1,9 @@
 import c4d
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def get_movie_info(video_path: str):
     """
@@ -13,7 +17,7 @@ def get_movie_info(video_path: str):
     """
     ml = c4d.bitmaps.MovieLoader()
     if not ml.Open(video_path):
-        print(f"Failed to open video file: {video_path}")
+        logger.error("Failed to open video file: {}".format(video_path))
         return None
     
     frame_count, fps = ml.GetInfo()
@@ -31,7 +35,7 @@ def calculate_and_set_frame_range(shader: c4d.BaseShader, video_path: str, doc: 
     """
     movie_info = get_movie_info(video_path)
     if not movie_info:
-        print("Unable to get movie info.")
+        logger.error("Unable to get movie info for path: {}".format(video_path))
         return
 
     frame_count, fps = movie_info
@@ -83,11 +87,11 @@ def create_background_with_video_material(doc, video_path: str):
 
 def create_video_material(video_path: str, doc: c4d.documents.BaseDocument):
     video_filename = os.path.basename(video_path)
-    material_name = f"Omni_{video_filename}"
+    material_name = "Omni_{}".format(video_filename)
 
     mat = c4d.BaseMaterial(c4d.Mmaterial)
     if not mat:
-        print("Failed to create a new material.")
+        logger.error("Failed to create a new material.")
         return None
 
     mat.SetName(material_name)
@@ -97,7 +101,7 @@ def create_video_material(video_path: str, doc: c4d.documents.BaseDocument):
 
     shader = c4d.BaseShader(c4d.Xbitmap)
     if not shader:
-        print("Failed to create a shader.")
+        logger.error("Failed to create a shader.")
         return None
     shader[c4d.BITMAPSHADER_FILENAME] = video_path
     shader[c4d.BITMAPSHADER_COLORPROFILE] = c4d.BITMAPSHADER_COLORPROFILE_SRGB

@@ -14,7 +14,6 @@ def set_project_settings_from_video(doc, video_path):
     """
     movie_info = get_movie_info(video_path)
     if not movie_info:
-        print(f"Failed to open video file: {video_path}")
         return False
 
     frame_count, fps = movie_info

@@ -13,7 +13,7 @@ class UnsupportedVersionException(Exception):
         self.minimum_required = minimum_required
         self.current_version = current_version
         self.update_url = update_url  # Optional: Include a URL for updates
-        message = f"Update needed: version {self.minimum_required} or higher.|Current version: {self.current_version}."
+        message = "Update needed: version {0} or higher.|Current version: {1}.".format(self.minimum_required, self.current_version)
         super().__init__(message)
 
 
