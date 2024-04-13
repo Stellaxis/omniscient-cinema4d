@@ -20,7 +20,6 @@ def process_import(doc, file_path, default_name, import_options=None):
         import_options = {}
 
     bake_camera = import_options.get("bake_camera", False)
-    
     is_camera = import_options.get("is_camera", False)
     camera_fps = import_options.get("camera_fps")
     video_fps = import_options.get("video_fps")
@@ -32,24 +31,34 @@ def process_import(doc, file_path, default_name, import_options=None):
         c4d.gui.MessageDialog(error_message)
         return
     
+    # Check if the file exists
+    if not os.path.isfile(file_path):
+        logger.warning("File not found: {}".format(file_path))
+        if file_path.lower().endswith('.obj'):
+            error_message = "Scan import failed. The scan '{}' needs to be in the same folder as the .omni file.".format(os.path.basename(file_path))
+        else:
+            error_message = "File '{}' not found.".format(os.path.basename(file_path))
+        logger.error(error_message)
+        c4d.gui.MessageDialog(error_message)
+        return
+    
+    # Adjust scales before attempting import
     adjust_scale('abc', 1.0, c4d.DOCUMENT_UNIT_M)
     adjust_scale('obj', 1.0, c4d.DOCUMENT_UNIT_M)
 
-    if os.path.isfile(file_path):
-        objects_before_import = set(doc.GetObjects())
-        if c4d.documents.MergeDocument(doc, file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS):
-            logger.info("Successfully imported: {}".format(file_path))
-            objects_after_import = set(doc.GetObjects())
-            new_objects = objects_after_import - objects_before_import
-            for obj in new_objects:
-                obj.SetName(default_name)
-                if is_camera:
-                    handle_camera_operations(doc, new_objects, camera_fps=camera_fps, video_fps=video_fps, bake_camera=bake_camera)
-                c4d.EventAdd()
-        else:
-            logger.error("Failed to import: {}".format(file_path))
+    # Import the file
+    objects_before_import = set(doc.GetObjects())
+    if c4d.documents.MergeDocument(doc, file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS):
+        logger.info("Successfully imported: {}".format(file_path))
+        objects_after_import = set(doc.GetObjects())
+        new_objects = objects_after_import - objects_before_import
+        for obj in new_objects:
+            obj.SetName(default_name)
+            if is_camera:
+                handle_camera_operations(doc, new_objects, camera_fps=camera_fps, video_fps=video_fps, bake_camera=bake_camera)
+            c4d.EventAdd()
     else:
-        logger.warning("File not found: {}".format(file_path))
+        logger.error("Failed to import: {}".format(file_path))
 
 def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, bake_camera=False):
     """Handles camera-specific operations, adjusts settings, and optionally replaces the Alembic camera with a baked one."""
@@ -178,12 +187,17 @@ def import_omni_file(doc, file_path):
             create_background_with_video_material(doc, video_path)
             set_project_settings_from_video(doc, video_path)
         else:
-            logger.warning("Video file not found: {}".format(video_path))
+            error_message = "Video import failed. The video file '{}' needs to be in the same folder as the .omni file.".format(os.path.basename(video_path))
+            logger.error(error_message)
+            c4d.gui.MessageDialog(error_message)
 
         # Handle geometry import
         geometry_paths = omni_data.get("data", {}).get("geometry", {}).get("relative_path", [])
         if geometry_paths:
             for geo_path in geometry_paths:
+                if not geo_path.strip():
+                    logger.warning("Gometry path is empty.")
+                    continue 
                 obj_path = os.path.join(os.path.dirname(file_path), geo_path)
                 process_import(doc, obj_path, "Scan_Omni")
 
