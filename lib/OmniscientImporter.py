@@ -64,10 +64,10 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
     """Handles camera-specific operations, adjusts settings, and optionally replaces the Alembic camera with a baked one."""
     for obj in new_objects:
         if obj.GetType() == 1028083:  # Check if it's an Alembic camera
-            # Adjust the Alembic camera settings first, if needed
-            if camera_fps is not None and video_fps is not None:
-                adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
-                logger.info("Camera settings adjusted")
+
+            # Adjust the Alembic camera settings first
+            adjust_alembic_camera_settings(doc, obj, camera_fps=camera_fps, video_fps=video_fps)
+            logger.info("Camera settings adjusted")
             
             if bake_camera:
                 try:
