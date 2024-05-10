@@ -4,7 +4,7 @@ PLUGIN_INFO = {
     "name": "Omniscient Importer",
     "author": "Stellaxis OÜ",
     "description": "Import data recorded by the Omniscient iOS application.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "location": "Extensions > Omniscient Importer"
 }
 
