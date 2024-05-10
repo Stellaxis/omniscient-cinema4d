@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 OMNISCIENT_SCENE_CONTROL_TAG_ID = 1063027
 
+def get_object_dict(objects):
+    return {obj.GetGUID(): obj for obj in objects}
+
 def process_import(doc, file_path, default_name, import_options=None):
     if import_options is None:
         import_options = {}
@@ -47,16 +50,18 @@ def process_import(doc, file_path, default_name, import_options=None):
     adjust_scale('obj', 1.0, c4d.DOCUMENT_UNIT_M)
 
     # Import the file
-    objects_before_import = set(doc.GetObjects())
+    objects_before_import = get_object_dict(doc.GetObjects())
     if c4d.documents.MergeDocument(doc, file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS):
         logger.info("Successfully imported: {}".format(file_path))
-        objects_after_import = set(doc.GetObjects())
-        new_objects = objects_after_import - objects_before_import
+        objects_after_import = get_object_dict(doc.GetObjects())
+        new_objects_guids = objects_after_import.keys() - objects_before_import.keys()
+        new_objects = [objects_after_import[guid] for guid in new_objects_guids]
+        
         for obj in new_objects:
             obj.SetName(default_name)
             if is_camera:
                 handle_camera_operations(doc, new_objects, camera_fps=camera_fps, video_fps=video_fps, bake_camera=bake_camera)
-            c4d.EventAdd()
+        c4d.EventAdd()
     else:
         logger.error("Failed to import: {}".format(file_path))
 

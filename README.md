@@ -46,7 +46,7 @@ To use the Omniscient Cinema 4D plugin, follow these steps:
 
 ## Compatibility
 
-- **Tested Cinema 4D Versions**: 2023.2, 2024.0.2
+- **Tested Cinema 4D Versions**: R26.107, 2023.1.3, 2023.2, 2024.0.2
 - **Supported Omniscient iOS Version**: 1.14.0 or higher
 
 ## Packaging the plugin
