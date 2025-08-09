@@ -61,6 +61,20 @@ For support with the Omniscient Cinema 4D plugin, please contact us through our 
 
 We welcome contributions to the Omniscient Cinema 4D plugin.
 
+## Commit messages & Git hooks
+
+This repository enforces Conventional Commits via a shared Git `commit-msg` hook. After cloning, run:
+
+```
+./scripts/setup-hooks.sh
+```
+
+This sets `core.hooksPath` to `.githooks` so Git will run the shared hook for all developers. Example messages:
+
+- feat(auth): add OAuth2 login
+- fix(ui)!: remove deprecated button
+- chore: update dependencies
+
 ## License
 
 The Omniscient Cinema 4D plugin is licensed under the [Apache-2.0 License](LICENSE).
