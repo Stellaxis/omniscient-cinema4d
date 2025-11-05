@@ -8,6 +8,13 @@ class OmniscientSceneControl(plugins.TagData):
         node[c4d.OMNISCIENTSCENECONTROL_VIEWPORT_GRID_VISIBILITY] = c4d.OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM
         return True
 
+    def _is_ancestor(self, ancestor, node):
+        while node:
+            if node == ancestor:
+                return True
+            node = node.GetUp()
+        return False
+
     def apply_visibility_setting(self, doc, user_setting, base_draw, c4d_attributes, viewing_through_camera, obj=None):
         changed = False
         visibility_state_map = {
@@ -16,32 +23,27 @@ class OmniscientSceneControl(plugins.TagData):
             c4d.OMNISCIENTSCENECONTROL_NEVER: False,
             c4d.OMNISCIENTSCENECONTROL_ONLY_NOT_THROUGH_CAM: not viewing_through_camera,
         }
-        visibility_state = visibility_state_map.get(user_setting, True)
+        visibility_state = bool(visibility_state_map.get(user_setting, True))
 
         if obj:
             desired_mode = c4d.MODE_ON if visibility_state else c4d.MODE_OFF
             # Only set when changed to avoid triggering unnecessary updates
-            if obj[c4d.ID_BASEOBJECT_VISIBILITY_EDITOR] != desired_mode:
-                obj[c4d.ID_BASEOBJECT_VISIBILITY_EDITOR] = desired_mode
+            if obj.GetEditorMode() != desired_mode:
+                obj.SetEditorMode(desired_mode)
                 changed = True
-            if obj[c4d.ID_BASEOBJECT_VISIBILITY_RENDER] != desired_mode:
-                obj[c4d.ID_BASEOBJECT_VISIBILITY_RENDER] = desired_mode
+            if obj.GetRenderMode() != desired_mode:
+                obj.SetRenderMode(desired_mode)
                 changed = True
         elif base_draw and c4d_attributes:
-            desired_mode = c4d.MODE_OFF if visibility_state else c4d.MODE_ON
+            desired_bool = visibility_state
             for attr in c4d_attributes:
                 if attr is None:
                     continue
                 current = base_draw[attr]
-                if current in (True, 1, c4d.MODE_ON):
-                    current_mode = c4d.MODE_ON
-                elif current in (False, 0, c4d.MODE_OFF):
-                    current_mode = c4d.MODE_OFF
-                else:
-                    current_mode = c4d.MODE_UNDEF
-
-                if current_mode != desired_mode:
-                    base_draw[attr] = desired_mode
+                if current is None:
+                    continue
+                if bool(current) != desired_bool:
+                    base_draw[attr] = desired_bool
                     changed = True
 
         return changed
@@ -50,18 +52,22 @@ class OmniscientSceneControl(plugins.TagData):
         if not tag:
             return False
 
-        # Check if the tag's host object is either an Alembic Generator or a Cinema 4D camera
-        # Only operate when this tag is on the active camera (or its Alembic parent)
-        is_camera_host = op.GetType() in [1028083, 5103]  # Alembic Generator or Cinema 4D camera
-
-        bd = doc.GetActiveBaseDraw()
+        # Prefer the render view when available; fall back to the active view.
+        bd = doc.GetRenderBaseDraw() or doc.GetActiveBaseDraw()
         if not bd:
             return True
 
-        scene_cam = bd.GetSceneCamera(doc) or bd.GetEditorCamera()
-        viewing_through_this = is_camera_host and (
-            op == scene_cam or (op.GetDown() and op.GetDown() == scene_cam)
-        )
+        has_scene_cam = bd.HasCameraLink()
+        scene_cam = bd.GetSceneCamera(doc) if has_scene_cam else None
+        using_editor_cam = not has_scene_cam
+
+        is_active_tag_camera = False
+        if has_scene_cam and scene_cam and op:
+            if op == scene_cam or self._is_ancestor(op, scene_cam):
+                is_active_tag_camera = True
+
+        viewing_through_this = has_scene_cam and is_active_tag_camera
+        should_write_bd = using_editor_cam or is_active_tag_camera
 
         # Retrieve user preferences for viewport grid, background, and safe frame visibility
         background_visibility_setting = tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_VISIBILITY]
@@ -72,7 +78,7 @@ class OmniscientSceneControl(plugins.TagData):
         background_object = tag[c4d.OMNISCIENTSCENECONTROL_BACKGROUND_LINK]
         any_changes = False
         if background_object:
-            any_changes = self.apply_visibility_setting(
+            any_changes |= self.apply_visibility_setting(
                 doc,
                 background_visibility_setting,
                 None,
@@ -84,9 +90,6 @@ class OmniscientSceneControl(plugins.TagData):
         # Decide if we should write BaseDraw (global) settings:
         # - When viewing through a tagged camera: only the active camera's tag writes them.
         # - When using the Editor Camera: allow tags to write their "not through" settings
-        using_editor_cam = (scene_cam == bd.GetEditorCamera())
-        should_write_bd = viewing_through_this or using_editor_cam
-
         if should_write_bd:
             # Control the viewport grid, world axis, and horizon visibility
             grid_changed = self.apply_visibility_setting(
@@ -95,6 +98,7 @@ class OmniscientSceneControl(plugins.TagData):
                 bd,
                 [
                     c4d.BASEDRAW_DISPLAYFILTER_GRID,
+                    c4d.BASEDRAW_DISPLAYFILTER_BASEGRID,
                     c4d.BASEDRAW_DISPLAYFILTER_WORLDAXIS,
                     c4d.BASEDRAW_DISPLAYFILTER_HORIZON,
                 ],
@@ -111,6 +115,4 @@ class OmniscientSceneControl(plugins.TagData):
             )
             any_changes = any_changes or grid_changed or safe_changed
 
-        if any_changes:
-            c4d.EventAdd()
         return True
