@@ -6,7 +6,7 @@ from c4d import documents
 from cameraBaker import bake_alembic_camera_animation
 from videoBackground import create_background_with_video_material, get_movie_info
 from projectSettings import set_project_settings_from_video
-from adjustScale import adjust_scale
+from importerSettings import adjust_scale
 import plugin_version
 from OmniscientMessage import OMNISCIENT_DIALOG_EVENT_ID, DialogDataStorage
 
@@ -45,13 +45,20 @@ def process_import(doc, file_path, default_name, import_options=None):
         c4d.gui.MessageDialog(error_message)
         return
     
-    # Adjust scales before attempting import
-    adjust_scale('abc', 1.0, c4d.DOCUMENT_UNIT_M)
-    adjust_scale('obj', 1.0, c4d.DOCUMENT_UNIT_M)
-
     # Import the file
     objects_before_import = get_object_dict(doc.GetObjects())
-    if c4d.documents.MergeDocument(doc, file_path, c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS):
+    extension = os.path.splitext(file_path)[1].lower().lstrip('.')
+    merge_success = False
+    with adjust_scale(extension, 1.0, c4d.DOCUMENT_UNIT_M) as applied:
+        if not applied:
+            logger.debug("Importer settings not applied; proceeding with defaults.")
+        merge_success = c4d.documents.MergeDocument(
+            doc,
+            file_path,
+            c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS,
+        )
+
+    if merge_success:
         logger.info("Successfully imported: {}".format(file_path))
         objects_after_import = get_object_dict(doc.GetObjects())
         new_objects_guids = objects_after_import.keys() - objects_before_import.keys()
