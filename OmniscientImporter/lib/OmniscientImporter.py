@@ -4,7 +4,7 @@ import logging
 import os
 from c4d import documents
 from cameraBaker import bake_alembic_camera_animation
-from videoBackground import create_background_with_video_material
+from videoBackground import create_background_with_video_material, get_movie_info
 from projectSettings import set_project_settings_from_video
 from adjustScale import adjust_scale
 import plugin_version
@@ -61,7 +61,6 @@ def process_import(doc, file_path, default_name, import_options=None):
             obj.SetName(default_name)
             if is_camera:
                 handle_camera_operations(doc, new_objects, camera_fps=camera_fps, video_fps=video_fps, bake_camera=bake_camera)
-        c4d.EventAdd()
     else:
         logger.error("Failed to import: {}".format(file_path))
 
@@ -87,8 +86,10 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
                     make_viewport_look_through_camera(doc, new_camera)
 
                     # Remove the Alembic camera, since it's replaced by the baked one
+                    doc.StartUndo()
                     doc.AddUndo(c4d.UNDOTYPE_DELETE, obj)
                     obj.Remove()
+                    doc.EndUndo()
                 except Exception as e:
                     logger.error("Error during camera processing: {}".format(e))
             else:
@@ -98,7 +99,6 @@ def handle_camera_operations(doc, new_objects, camera_fps=None, video_fps=None, 
                 # Make the viewport look through the Alembic camera
                 make_viewport_look_through_camera(doc, obj)
 
-    c4d.EventAdd()
 
 def assign_omniscient_control_tag_to_camera(doc, camera_objects):
     """Assigns omniscient scene control tag to given camera objects."""
@@ -132,7 +132,6 @@ def update_project_settings(doc, width, height, fps):
     film_aspect_ratio = width / float(height)
     rd[c4d.RDATA_FILMASPECT] = film_aspect_ratio
     documents.SetActiveDocument(doc)
-    c4d.EventAdd()
 
 def set_viewport_to_lines(doc):
     """Sets the active viewport display to 'Lines' mode."""
@@ -143,8 +142,6 @@ def set_viewport_to_lines(doc):
 
     bd[c4d.BASEDRAW_DATA_SDISPLAYACTIVE] = c4d.BASEDRAW_SDISPLAY_NOSHADING
 
-    c4d.EventAdd()
-
 def make_viewport_look_through_camera(doc, camera):
     """Sets the active viewport to look through the given camera."""
     bd = doc.GetActiveBaseDraw()
@@ -153,8 +150,6 @@ def make_viewport_look_through_camera(doc, camera):
         return
 
     bd.SetSceneCamera(camera)
-
-    c4d.EventAdd()
 
 def import_omni_file(doc, file_path):
     logger.info("Selected .omni file: {}".format(file_path))
@@ -189,8 +184,10 @@ def import_omni_file(doc, file_path):
         # Create material from video and set project settings
         video_path = os.path.join(os.path.dirname(file_path), video_data.get("relative_path", ""))
         if os.path.exists(video_path):
-            create_background_with_video_material(doc, video_path)
-            set_project_settings_from_video(doc, video_path)
+            # Fetch (framecount, fps) once and reuse to avoid reopening the file.
+            movie_info = get_movie_info(video_path)
+            create_background_with_video_material(doc, video_path, movie_info=movie_info)
+            set_project_settings_from_video(doc, video_path, movie_info=movie_info)
         else:
             error_message = "Video import failed. The video file '{}' needs to be in the same folder as the .omni file.".format(os.path.basename(video_path))
             logger.error(error_message)
@@ -222,6 +219,10 @@ def import_omni_file(doc, file_path):
 
     except Exception as e:
         logger.exception("An error occurred while processing the .omni file: ", exc_info=e)
+    finally:
+        # Single UI refresh at the end of the pipeline (or on error).
+        # EventAdd posts a global event and schedules a redraw, which we only want once here.
+        c4d.EventAdd()
 
 def main(doc):
     file_path = c4d.storage.LoadDialog(title="Select .omni File", flags=c4d.FILESELECT_LOAD, force_suffix="omni")

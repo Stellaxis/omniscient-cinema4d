@@ -1,7 +1,7 @@
 import c4d
 from videoBackground import get_movie_info
 
-def set_project_settings_from_video(doc, video_path):
+def set_project_settings_from_video(doc, video_path, movie_info=None):
     """
     Sets the document's project settings based on the given video file.
 
@@ -12,7 +12,9 @@ def set_project_settings_from_video(doc, video_path):
     Returns:
     - True if the settings were successfully applied, False otherwise.
     """
-    movie_info = get_movie_info(video_path)
+    # If metadata is already available, reuse it to avoid reopening the file.
+    if movie_info is None:
+        movie_info = get_movie_info(video_path)
     if not movie_info:
         return False
 
@@ -28,7 +30,5 @@ def set_project_settings_from_video(doc, video_path):
     doc.SetMinTime(start_frame)
     doc.SetMaxTime(end_frame)
     doc.SetTime(start_frame)
-
-    c4d.EventAdd()
 
     return True

@@ -80,6 +80,5 @@ def bake_alembic_camera_animation(doc, alembic_camera):
     
     # Reset the timeline to its original position
     doc.SetTime(original_time)
-    c4d.EventAdd()
     
     return new_camera

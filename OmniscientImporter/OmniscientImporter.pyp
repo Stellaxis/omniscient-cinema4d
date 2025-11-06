@@ -30,7 +30,6 @@ class OmniFileLoader(c4d.plugins.SceneLoaderData):
 
     def Load(self, node, name, doc, filterflags, error, bt):
         omniscient_importer.import_omni_file(doc, name)
-        c4d.EventAdd()
         return c4d.FILEERROR_NONE
 
 def main():

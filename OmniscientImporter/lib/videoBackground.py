@@ -24,7 +24,7 @@ def get_movie_info(video_path: str):
     ml.Close()
     return frame_count, fps
 
-def calculate_and_set_frame_range(shader: c4d.BaseShader, video_path: str, doc: c4d.documents.BaseDocument):
+def calculate_and_set_frame_range(shader: c4d.BaseShader, video_path: str, doc: c4d.documents.BaseDocument, movie_info=None):
     """
     Calculates and sets the frame range for the video texture shader based on the actual video file.
     
@@ -33,7 +33,9 @@ def calculate_and_set_frame_range(shader: c4d.BaseShader, video_path: str, doc: 
     - video_path: The path to the video file.
     - doc: The active Cinema 4D document.
     """
-    movie_info = get_movie_info(video_path)
+    # Reuse metadata when provided to avoid reopening the movie.
+    if movie_info is None:
+        movie_info = get_movie_info(video_path)
     if not movie_info:
         logger.error("Unable to get movie info for path: {}".format(video_path))
         return
@@ -58,9 +60,9 @@ def calculate_and_set_frame_range(shader: c4d.BaseShader, video_path: str, doc: 
     # Set the shader fps to match the video fps
     shader[c4d.BITMAPSHADER_TIMING_FPS] = fps
 
-def create_background_with_video_material(doc, video_path: str):
+def create_background_with_video_material(doc, video_path: str, movie_info=None):
     # First, create the video material
-    material = create_video_material(video_path, doc)
+    material = create_video_material(video_path, doc, movie_info=movie_info)
     if material is None:
         logger.error("Failed to create material from video.")
         return False
@@ -81,11 +83,10 @@ def create_background_with_video_material(doc, video_path: str):
     background.InsertTag(textureTag)
     background.SetName('Background_Omni')
     doc.InsertObject(background)
-    c4d.EventAdd()
 
     return True
 
-def create_video_material(video_path: str, doc: c4d.documents.BaseDocument):
+def create_video_material(video_path: str, doc: c4d.documents.BaseDocument, movie_info=None):
     video_filename = os.path.basename(video_path)
     material_name = "Omni_{}".format(video_filename)
 
@@ -107,7 +108,7 @@ def create_video_material(video_path: str, doc: c4d.documents.BaseDocument):
     shader[c4d.BITMAPSHADER_COLORPROFILE] = c4d.BITMAPSHADER_COLORPROFILE_SRGB
 
     # Additional shader settings for timing
-    calculate_and_set_frame_range(shader, video_path, doc)
+    calculate_and_set_frame_range(shader, video_path, doc, movie_info=movie_info)
 
     mat.InsertShader(shader)
     mat[c4d.MATERIAL_LUMINANCE_SHADER] = shader
@@ -121,6 +122,5 @@ def create_video_material(video_path: str, doc: c4d.documents.BaseDocument):
     mat.SetParameter(c4d.MATERIAL_CAUSTICS_RECEIVE, False, c4d.DESCFLAGS_SET_0)
 
     doc.InsertMaterial(mat)
-    c4d.EventAdd()
 
     return mat
